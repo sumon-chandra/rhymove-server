@@ -24,6 +24,14 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // await client.connect();
+    const classesCollection = client.db("rhymoveDB").collection("classes");
+
+    // ??? Get the classes collection
+    app.get("/popular-classes", async (req, res) => {
+      const classes = await classesCollection.find().limit(6).toArray();
+      res.send(classes);
+    });
+
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
   } finally {
