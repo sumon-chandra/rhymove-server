@@ -25,11 +25,24 @@ async function run() {
   try {
     // await client.connect();
     const classesCollection = client.db("rhymoveDB").collection("classes");
+    const instructorsCollection = client
+      .db("rhymoveDB")
+      .collection("instructors");
 
     // ??? Get the classes collection
     app.get("/popular-classes", async (req, res) => {
-      const classes = await classesCollection.find().limit(6).toArray();
+      const classes = await classesCollection
+        .find()
+        .sort({ enrolledStudents: -1 })
+        .limit(6)
+        .toArray();
       res.send(classes);
+    });
+
+    // ??? Get the instructors collection
+    app.get("/popular-instructors", async (req, res) => {
+      const instructors = await instructorsCollection.find().limit(6).toArray();
+      res.send(instructors);
     });
 
     await client.db("admin").command({ ping: 1 });
