@@ -38,6 +38,10 @@ async function run() {
         .toArray();
       res.send(classes);
     });
+    app.get("/classes", async (req, res) => {
+      const classes = await classesCollection.find().toArray();
+      res.send(classes);
+    });
 
     // ??? Get the instructors collection
     app.get("/popular-instructors", async (req, res) => {
