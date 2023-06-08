@@ -44,6 +44,10 @@ async function run() {
       const instructors = await instructorsCollection.find().limit(6).toArray();
       res.send(instructors);
     });
+    app.get("/instructors", async (req, res) => {
+      const instructors = await instructorsCollection.find().toArray();
+      res.send(instructors);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
