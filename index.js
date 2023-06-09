@@ -9,6 +9,26 @@ const port = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 
+const verifyJWT = (req, res, next) => {
+  const authorization = req.headers.authorization;
+  if (!authorization) {
+    return res
+      .status(401)
+      .send({ error: true, message: "Unauthorized access." });
+  }
+  const token = authorization.split(" ")[1];
+
+  jwt.verify(token, process.env.USER_SECRET_TOKEN, (err, decoded) => {
+    if (err) {
+      return res
+        .status(401)
+        .send({ error: true, message: "Unauthorized access 2." });
+    }
+    req.decoded = decoded;
+    next();
+  });
+};
+
 app.get("/", (req, res) => {
   res.send("Welcome to Rhymove");
 });
@@ -35,6 +55,24 @@ async function run() {
       .db("rhymoveDB")
       .collection("selectedClass");
 
+    // JWT Authorization
+    app.post("/jwt", (req, res) => {
+      const user = req.body;
+      const token = jwt.sign(user, process.env.USER_SECRET_TOKEN, {
+        expiresIn: "1h",
+      });
+      res.send({ token });
+    });
+    const verifyAdmin = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      if (user?.rule !== "admin") {
+        return res.status(401).send({ message: "Unauthorized access" });
+      }
+      next();
+    };
+
     // ??? ***************************** Classes collection  ******************************
     app.get("/popular-classes", async (req, res) => {
       const classes = await classesCollection
@@ -53,8 +91,15 @@ async function run() {
       const result = await selectedClassCollection.insertOne(selectedClass);
       res.send(result);
     });
-    app.get("/selected-class", async (req, res) => {
-      const selectedClass = await selectedClassCollection.find().toArray();
+    app.get("/selected-class", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.send([]);
+      if (req.decoded.email !== email)
+        return res
+          .status(401)
+          .send({ error: true, message: "Forbidden access token" });
+      const query = { email: email };
+      const selectedClass = await selectedClassCollection.find(query).toArray();
       res.send(selectedClass);
     });
     app.delete("/selected-class/:id", async (req, res) => {
@@ -76,7 +121,7 @@ async function run() {
     });
 
     // ???  ******************************** Users collections  *******************************
-    app.post("/users", async (req, res) => {
+    app.post("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
@@ -86,18 +131,28 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/users", async (req, res) => {
+    app.get("/users", verifyJWT, async (req, res) => {
       const users = await usersCollection.find().toArray();
       res.send(users);
     });
     app.patch("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
+      console.log(email);
       const filter = { email };
       const updateDoc = {
         $set: {
           rule: "admin",
         },
       };
+      app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+        const email = req.params.email;
+        console.log(email);
+        if (req.decoded.email !== email) return res.send({ admin: false });
+        const filter = { email };
+        const user = await usersCollection.findOne(filter);
+        const result = { admin: user?.rule === "admin" };
+        res.send(result);
+      });
       const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
