@@ -57,6 +57,13 @@ async function run() {
       const selectedClass = await selectedClassCollection.find().toArray();
       res.send(selectedClass);
     });
+    app.delete("/selected-class/:id", async (req, res) => {
+      const id = req.params.id;
+      const result = await selectedClassCollection.deleteOne({
+        _id: new ObjectId(id),
+      });
+      res.send(result);
+    });
 
     // ???  *************************** Instructors collection  ***************************
     app.get("/popular-instructors", async (req, res) => {
