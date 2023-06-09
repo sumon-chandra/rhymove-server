@@ -2,6 +2,7 @@ require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
+const jwt = require("jsonwebtoken");
 const app = express();
 const port = process.env.PORT || 5000;
 
@@ -28,6 +29,7 @@ async function run() {
     const instructorsCollection = client
       .db("rhymoveDB")
       .collection("instructors");
+    const usersCollection = client.db("rhymoveDB").collection("users");
 
     // ??? Get the classes collection
     app.get("/popular-classes", async (req, res) => {
@@ -51,6 +53,22 @@ async function run() {
     app.get("/instructors", async (req, res) => {
       const instructors = await instructorsCollection.find().toArray();
       res.send(instructors);
+    });
+
+    // ??? Users collections
+    app.post("/users", async (req, res) => {
+      const user = req.body;
+      const query = { email: user.email };
+      const existingUser = await usersCollection.findOne(query);
+      if (existingUser) {
+        return res.status(409).send({ message: "User already exists" });
+      }
+      const result = await usersCollection.insertOne(user);
+      res.send(result);
+    });
+    app.get("/users", async (req, res) => {
+      const users = await usersCollection.find().toArray();
+      res.send(users);
     });
 
     await client.db("admin").command({ ping: 1 });
