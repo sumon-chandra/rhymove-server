@@ -25,13 +25,17 @@ const client = new MongoClient(uri, {
 async function run() {
   try {
     // await client.connect();
+    // ??? ***************************** All collections  ******************************
     const classesCollection = client.db("rhymoveDB").collection("classes");
     const instructorsCollection = client
       .db("rhymoveDB")
       .collection("instructors");
     const usersCollection = client.db("rhymoveDB").collection("users");
+    const selectedClassCollection = client
+      .db("rhymoveDB")
+      .collection("selectedClass");
 
-    // ??? Get the classes collection
+    // ??? ***************************** Classes collection  ******************************
     app.get("/popular-classes", async (req, res) => {
       const classes = await classesCollection
         .find()
@@ -44,8 +48,17 @@ async function run() {
       const classes = await classesCollection.find().toArray();
       res.send(classes);
     });
+    app.post("/selected-class", async (req, res) => {
+      const selectedClass = req.body;
+      const result = await selectedClassCollection.insertOne(selectedClass);
+      res.send(result);
+    });
+    app.get("/selected-class", async (req, res) => {
+      const selectedClass = await selectedClassCollection.find().toArray();
+      res.send(selectedClass);
+    });
 
-    // ??? Get the instructors collection
+    // ???  *************************** Instructors collection  ***************************
     app.get("/popular-instructors", async (req, res) => {
       const instructors = await instructorsCollection.find().limit(6).toArray();
       res.send(instructors);
@@ -55,7 +68,7 @@ async function run() {
       res.send(instructors);
     });
 
-    // ??? Users collections
+    // ???  ******************************** Users collections  *******************************
     app.post("/users", async (req, res) => {
       const user = req.body;
       const query = { email: user.email };
