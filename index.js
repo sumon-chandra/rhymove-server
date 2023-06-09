@@ -70,6 +70,28 @@ async function run() {
       const users = await usersCollection.find().toArray();
       res.send(users);
     });
+    app.patch("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email };
+      const updateDoc = {
+        $set: {
+          rule: "admin",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
+    app.patch("/users/instructor/:email", async (req, res) => {
+      const email = req.params.email;
+      const filter = { email };
+      const updateDoc = {
+        $set: {
+          rule: "instructor",
+        },
+      };
+      const result = await usersCollection.updateOne(filter, updateDoc);
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
