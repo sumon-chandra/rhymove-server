@@ -1,9 +1,9 @@
-require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
 const app = express();
+require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -17,6 +17,7 @@ const verifyJWT = (req, res, next) => {
       .send({ error: true, message: "Unauthorized access." });
   }
   const token = authorization.split(" ")[1];
+  // console.log(process.env.USER_SECRET_TOKEN);
 
   jwt.verify(token, process.env.USER_SECRET_TOKEN, (err, decoded) => {
     if (err) {
@@ -24,6 +25,7 @@ const verifyJWT = (req, res, next) => {
         .status(401)
         .send({ error: true, message: "Unauthorized access 2." });
     }
+    console.log("Decoded :", req.decoded);
     req.decoded = decoded;
     next();
   });
@@ -65,6 +67,7 @@ async function run() {
     });
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
+      console.log(email);
       const query = { email };
       const user = await usersCollection.findOne(query);
       if (user?.rule !== "admin") {
@@ -121,8 +124,9 @@ async function run() {
     });
 
     // ???  ******************************** Users collections  *******************************
-    app.post("/users", verifyJWT, verifyAdmin, async (req, res) => {
+    app.post("/users", verifyJWT, async (req, res) => {
       const user = req.body;
+      console.log(user);
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
       if (existingUser) {
@@ -135,6 +139,16 @@ async function run() {
       const users = await usersCollection.find().toArray();
       res.send(users);
     });
+    app.get("/users/admin/:email", verifyJWT, async (req, res) => {
+      console.log("Hello");
+      const email = req.params.email;
+      console.log(email);
+      if (req.decoded.email !== email) return res.send({ admin: false });
+      const filter = { email };
+      const user = await usersCollection.findOne(filter);
+      const result = { admin: user?.rule === "admin" };
+      res.send(result);
+    });
     app.patch("/users/admin/:email", async (req, res) => {
       const email = req.params.email;
       console.log(email);
@@ -144,15 +158,7 @@ async function run() {
           rule: "admin",
         },
       };
-      app.get("/users/admin/:email", verifyJWT, async (req, res) => {
-        const email = req.params.email;
-        console.log(email);
-        if (req.decoded.email !== email) return res.send({ admin: false });
-        const filter = { email };
-        const user = await usersCollection.findOne(filter);
-        const result = { admin: user?.rule === "admin" };
-        res.send(result);
-      });
+
       const result = await usersCollection.updateOne(filter, updateDoc);
       res.send(result);
     });
