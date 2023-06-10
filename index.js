@@ -86,6 +86,11 @@ async function run() {
     };
 
     // ??? ***************************** Classes collection  ******************************
+    app.post("/classes", verifyJWT, verifyInstructor, async (req, res) => {
+      const newClass = req.body;
+      const result = await classesCollection.insertOne(newClass);
+      res.send(result);
+    });
     app.get("/popular-classes", async (req, res) => {
       const classes = await classesCollection
         .find()
@@ -95,7 +100,8 @@ async function run() {
       res.send(classes);
     });
     app.get("/classes", async (req, res) => {
-      const classes = await classesCollection.find().toArray();
+      const filter = { status: "approved" };
+      const classes = await classesCollection.find(filter).toArray();
       res.send(classes);
     });
     app.post("/selected-class", async (req, res) => {
@@ -121,6 +127,17 @@ async function run() {
       });
       res.send(result);
     });
+    app.get("/enrolled-classes", verifyJWT, async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.send([]);
+      if (req.decoded.email !== email)
+        return res
+          .status(401)
+          .send({ error: true, message: "Forbidden access token" });
+      const query = { email: email };
+      const enrolledClasses = await paymentCollection.find(query).toArray();
+      res.send(enrolledClasses);
+    });
 
     // ???  *************************** Instructors collection  ***************************
     app.get("/popular-instructors", async (req, res) => {
@@ -133,13 +150,13 @@ async function run() {
     });
 
     // ???  ******************************** Users collections  *******************************
-    app.post("/users", verifyJWT, async (req, res) => {
+    app.post("/users", async (req, res) => {
       const user = req.body;
       console.log(user);
       const query = { email: user.email };
       const existingUser = await usersCollection.findOne(query);
       if (existingUser) {
-        return res.status(409).send({ message: "User already exists" });
+        return res.send({});
       }
       const result = await usersCollection.insertOne(user);
       res.send(result);
@@ -149,9 +166,9 @@ async function run() {
       res.send(users);
     });
     app.get("/users/admin/:email", verifyJWT, async (req, res) => {
-      console.log("Hello");
+      // console.log("Hello");
       const email = req.params.email;
-      console.log(email);
+      // console.log("Hee", email);
       if (req.decoded.email !== email) return res.send({ admin: false });
       const filter = { email };
       const user = await usersCollection.findOne(filter);
@@ -213,19 +230,17 @@ async function run() {
     app.post("/payment", verifyJWT, async (req, res) => {
       const payment = req.body;
       const insertResult = await paymentCollection.insertOne(payment);
-      const query = {
-        _id: { $in: new ObjectId(payment.paidItemId) },
-      };
+      const query = { _id: new ObjectId(payment.paidItemId) };
       const updateDoc = {
         $set: {
           status: "paid",
         },
       };
-      const deleteResult = await selectedClassCollection.updateOne(
+      const updatedResult = await selectedClassCollection.updateOne(
         query,
         updateDoc
       );
-      res.send({ insertResult, deleteResult });
+      res.send({ insertResult, updatedResult });
     });
 
     await client.db("admin").command({ ping: 1 });
