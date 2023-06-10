@@ -133,9 +133,19 @@ async function run() {
         return res
           .status(401)
           .send({ error: true, message: "Forbidden access token" });
-      const query = { email: email };
+      const query = { userEmail: email };
       const enrolledClasses = await paymentCollection.find(query).toArray();
       res.send(enrolledClasses);
+    });
+
+    // ???  *************************** Instructors collection  ***************************
+    app.get("/popular-instructors", async (req, res) => {
+      const instructors = await instructorsCollection.find().limit(6).toArray();
+      res.send(instructors);
+    });
+    app.get("/instructors", async (req, res) => {
+      const instructors = await instructorsCollection.find().toArray();
+      res.send(instructors);
     });
     app.get("/my-classes", verifyJWT, verifyInstructor, async (req, res) => {
       const email = req.query.email;
@@ -147,16 +157,6 @@ async function run() {
       const query = { instructorEmail: email };
       const classes = await classesCollection.find(query).toArray();
       res.send(classes);
-    });
-
-    // ???  *************************** Instructors collection  ***************************
-    app.get("/popular-instructors", async (req, res) => {
-      const instructors = await instructorsCollection.find().limit(6).toArray();
-      res.send(instructors);
-    });
-    app.get("/instructors", async (req, res) => {
-      const instructors = await instructorsCollection.find().toArray();
-      res.send(instructors);
     });
 
     // ???  ******************************** Users collections  *******************************
