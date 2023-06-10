@@ -145,7 +145,6 @@ async function run() {
           .status(401)
           .send({ error: true, message: "Forbidden access token" });
       const query = { instructorEmail: email };
-      console.log("Instructor : ", query);
       const classes = await classesCollection.find(query).toArray();
       res.send(classes);
     });
@@ -246,7 +245,24 @@ async function run() {
         query,
         updateDoc
       );
-      res.send({ insertResult, updatedResult });
+      const updateClass = {
+        $inc: { enrolledStudents: 1, availableSeats: -1 },
+      };
+      const classQuery = { _id: new ObjectId(payment.selectedClassId) };
+      const updateClasses = await classesCollection.updateOne(
+        classQuery,
+        updateClass
+      );
+      const updateSelectedClasses = await selectedClassCollection.updateOne(
+        query,
+        updateClass
+      );
+      res.send({
+        insertResult,
+        updatedResult,
+        updateClasses,
+        updateSelectedClasses,
+      });
     });
 
     await client.db("admin").command({ ping: 1 });
