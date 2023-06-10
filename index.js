@@ -25,7 +25,6 @@ const verifyJWT = (req, res, next) => {
         .status(401)
         .send({ error: true, message: "Unauthorized access 2." });
     }
-    console.log("Decoded :", req.decoded);
     req.decoded = decoded;
     next();
   });
@@ -67,10 +66,18 @@ async function run() {
     });
     const verifyAdmin = async (req, res, next) => {
       const email = req.decoded.email;
-      console.log(email);
       const query = { email };
       const user = await usersCollection.findOne(query);
       if (user?.rule !== "admin") {
+        return res.status(401).send({ message: "Unauthorized access" });
+      }
+      next();
+    };
+    const verifyInstructor = async (req, res, next) => {
+      const email = req.decoded.email;
+      const query = { email };
+      const user = await usersCollection.findOne(query);
+      if (user?.rule !== "instructor") {
         return res.status(401).send({ message: "Unauthorized access" });
       }
       next();
@@ -135,7 +142,7 @@ async function run() {
       const result = await usersCollection.insertOne(user);
       res.send(result);
     });
-    app.get("/users", verifyJWT, async (req, res) => {
+    app.get("/users", verifyJWT, verifyAdmin, async (req, res) => {
       const users = await usersCollection.find().toArray();
       res.send(users);
     });
@@ -149,9 +156,18 @@ async function run() {
       const result = { admin: user?.rule === "admin" };
       res.send(result);
     });
-    app.patch("/users/admin/:email", async (req, res) => {
+    app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
+      console.log("Hello");
       const email = req.params.email;
       console.log(email);
+      if (req.decoded.email !== email) return res.send({ instructor: false });
+      const filter = { email };
+      const user = await usersCollection.findOne(filter);
+      const result = { instructor: user?.rule === "instructor" };
+      res.send(result);
+    });
+    app.patch("/users/admin/:email", async (req, res) => {
+      const email = req.params.email;
       const filter = { email };
       const updateDoc = {
         $set: {
