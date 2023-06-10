@@ -90,6 +90,17 @@ async function run() {
       const result = await classesCollection.insertOne(newClass);
       res.send(result);
     });
+    app.get("/classes-for-admin", verifyJWT, verifyAdmin, async (req, res) => {
+      const email = req.query.email;
+      if (!email) return res.send([]);
+      if (req.decoded.email !== email)
+        return res
+          .status(401)
+          .send({ error: true, message: "Forbidden access token" });
+
+      const classes = await classesCollection.find().toArray();
+      res.send(classes);
+    });
     app.get("/popular-classes", async (req, res) => {
       const classes = await classesCollection
         .find()
