@@ -1,9 +1,10 @@
+require("dotenv").config();
 const { MongoClient, ServerApiVersion, ObjectId } = require("mongodb");
 const express = require("express");
 const cors = require("cors");
 const jwt = require("jsonwebtoken");
+const stripe = require("stripe")(process.env.PAYMENT_SECRET_KEY);
 const app = express();
-require("dotenv").config();
 const port = process.env.PORT || 5000;
 
 app.use(cors());
@@ -52,6 +53,7 @@ async function run() {
       .db("rhymoveDB")
       .collection("instructors");
     const usersCollection = client.db("rhymoveDB").collection("users");
+    const paymentCollection = client.db("rhymoveDB").collection("payment");
     const selectedClassCollection = client
       .db("rhymoveDB")
       .collection("selectedClass");
@@ -193,6 +195,37 @@ async function run() {
       const id = req.params.id;
       const result = await usersCollection.deleteOne({ _id: new ObjectId(id) });
       res.send(result);
+    });
+
+    // ????? *****************************  Create Payment Intent ************************
+    app.post("/create-payment-intent", verifyJWT, async (req, res) => {
+      const { price } = req.body;
+      const amount = price * 100;
+      const paymentIntent = await stripe.paymentIntents.create({
+        amount: amount,
+        currency: "usd",
+        payment_method_types: ["card"],
+      });
+      res.send({
+        clientSecret: paymentIntent.client_secret,
+      });
+    });
+    app.post("/payment", verifyJWT, async (req, res) => {
+      const payment = req.body;
+      const insertResult = await paymentCollection.insertOne(payment);
+      const query = {
+        _id: { $in: new ObjectId(payment.paidItemId) },
+      };
+      const updateDoc = {
+        $set: {
+          status: "paid",
+        },
+      };
+      const deleteResult = await selectedClassCollection.updateOne(
+        query,
+        updateDoc
+      );
+      res.send({ insertResult, deleteResult });
     });
 
     await client.db("admin").command({ ping: 1 });
