@@ -94,9 +94,10 @@ async function run() {
       const email = req.query.email;
       if (!email) return res.send([]);
       if (req.decoded.email !== email)
-        return res
-          .status(401)
-          .send({ error: true, message: "Forbidden access token" });
+        return res.status(401).send({
+          error: true,
+          message: "Forbidden access token classes for admin",
+        });
 
       const classes = await classesCollection.find().toArray();
       res.send(classes);
@@ -122,10 +123,6 @@ async function run() {
     app.get("/selected-class", verifyJWT, async (req, res) => {
       const email = req.query.email;
       if (!email) return res.send([]);
-      if (req.decoded.email !== email)
-        return res
-          .status(401)
-          .send({ error: true, message: "Forbidden access token" });
       const query = { email: email };
       const selectedClass = await selectedClassCollection.find(query).toArray();
       res.send(selectedClass);
@@ -141,9 +138,10 @@ async function run() {
       const email = req.query.email;
       if (!email) return res.send([]);
       if (req.decoded.email !== email)
-        return res
-          .status(401)
-          .send({ error: true, message: "Forbidden access token" });
+        return res.status(401).send({
+          error: true,
+          message: "Forbidden access token for enrolled classes",
+        });
       const query = { userEmail: email };
       const enrolledClasses = await paymentCollection.find(query).toArray();
       res.send(enrolledClasses);
@@ -162,11 +160,24 @@ async function run() {
       const email = req.query.email;
       if (!email) return res.send([]);
       if (req.decoded.email !== email)
-        return res
-          .status(401)
-          .send({ error: true, message: "Forbidden access token" });
+        return res.status(401).send({
+          error: true,
+          message: "Forbidden access token for my classes (Instructor)",
+        });
       const query = { instructorEmail: email };
       const classes = await classesCollection.find(query).toArray();
+      res.send(classes);
+    });
+    app.patch("/my-classes/:id", verifyJWT, verifyAdmin, async (req, res) => {
+      const id = req.params.id;
+      const query = { _id: new ObjectId(id) };
+      const feedback = req.body.feedback;
+      const updateDoc = {
+        $set: {
+          feedback: feedback,
+        },
+      };
+      const classes = await classesCollection.updateOne(query, updateDoc);
       res.send(classes);
     });
 
@@ -195,6 +206,7 @@ async function run() {
     });
     app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
+      console.log(email);
       if (req.decoded.email !== email) return res.send({ instructor: false });
       const filter = { email };
       const user = await usersCollection.findOne(filter);
