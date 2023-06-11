@@ -322,6 +322,14 @@ async function run() {
         updateSelectedClasses,
       });
     });
+    app.get("/payment-history", verifyJWT, async (req, res) => {
+      const query = { userEmail: req.query.email };
+      const result = await paymentCollection
+        .find(query)
+        .sort({ createdAt: -1 })
+        .toArray();
+      res.send(result);
+    });
 
     await client.db("admin").command({ ping: 1 });
     console.log("Successfully connected to MongoDB!");
