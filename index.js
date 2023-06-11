@@ -168,13 +168,49 @@ async function run() {
       const classes = await classesCollection.find(query).toArray();
       res.send(classes);
     });
-    app.patch("/my-classes/:id", verifyJWT, verifyAdmin, async (req, res) => {
+    app.patch(
+      "/class-feedback/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const feedback = {
+          feedback: req.body.feedback,
+          feedbackWriter: req.body.feedbackWriter,
+        };
+
+        const updateDoc = {
+          $set: {
+            feedback: feedback,
+          },
+        };
+        const classes = await classesCollection.updateOne(query, updateDoc);
+        res.send(classes);
+      }
+    );
+    app.patch(
+      "/class-approved/:id",
+      verifyJWT,
+      verifyAdmin,
+      async (req, res) => {
+        const id = req.params.id;
+        const query = { _id: new ObjectId(id) };
+        const updateDoc = {
+          $set: {
+            status: "approved",
+          },
+        };
+        const classes = await classesCollection.updateOne(query, updateDoc);
+        res.send(classes);
+      }
+    );
+    app.patch("/class-denied/:id", verifyJWT, verifyAdmin, async (req, res) => {
       const id = req.params.id;
       const query = { _id: new ObjectId(id) };
-      const feedback = req.body.feedback;
       const updateDoc = {
         $set: {
-          feedback: feedback,
+          status: "denied",
         },
       };
       const classes = await classesCollection.updateOne(query, updateDoc);
@@ -206,7 +242,6 @@ async function run() {
     });
     app.get("/users/instructor/:email", verifyJWT, async (req, res) => {
       const email = req.params.email;
-      console.log(email);
       if (req.decoded.email !== email) return res.send({ instructor: false });
       const filter = { email };
       const user = await usersCollection.findOne(filter);
