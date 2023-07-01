@@ -168,6 +168,22 @@ async function run() {
       const classes = await classesCollection.find(query).toArray();
       res.send(classes);
     });
+    app.get(
+      "/my-classes/:id/enrolled-students",
+      verifyJWT,
+      verifyInstructor,
+      async (req, res) => {
+        const enrolledClassId = req.params.id;
+        const instructorEmail = req.query.email;
+        const query = {
+          selectedClassId: enrolledClassId,
+          instructorEmail: instructorEmail,
+        };
+        const enrolledStudents = await paymentCollection.find(query).toArray();
+        // console.log(enrolledStudents);
+        res.send(enrolledStudents);
+      }
+    );
     app.patch(
       "/class-feedback/:id",
       verifyJWT,
